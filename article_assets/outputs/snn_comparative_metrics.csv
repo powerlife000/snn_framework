@@ -1,37 +1,101 @@
-method,label,payload_bits,payload_capacity_bits,digit_count,latency_ticks,physical_streams,stream_ticks,id_bits_per_stream_tick
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),2,2,,4,1,4,0.5
-binary_serial,Binary serial baseline,2,2,,2,1,2,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,2,4,1,57,1,57,0.03508771929824561
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),4,4,,16,1,16,0.25
-binary_serial,Binary serial baseline,4,4,,4,1,4,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,4,4,1,57,1,57,0.07017543859649122
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),6,6,,64,1,64,0.09375
-binary_serial,Binary serial baseline,6,6,,6,1,6,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,6,8,2,113,1,113,0.05309734513274336
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),8,8,,256,1,256,0.03125
-binary_serial,Binary serial baseline,8,8,,8,1,8,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,8,8,2,113,1,113,0.07079646017699115
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),10,10,,1024,1,1024,0.009765625
-binary_serial,Binary serial baseline,10,10,,10,1,10,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,10,12,3,169,1,169,0.05917159763313609
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),12,12,,4096,1,4096,0.0029296875
-binary_serial,Binary serial baseline,12,12,,12,1,12,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,12,12,3,169,1,169,0.07100591715976332
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),14,14,,16384,1,16384,0.0008544921875
-binary_serial,Binary serial baseline,14,14,,14,1,14,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,14,16,4,225,1,225,0.06222222222222222
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),16,16,,65536,1,65536,0.000244140625
-binary_serial,Binary serial baseline,16,16,,16,1,16,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,16,16,4,225,1,225,0.07111111111111111
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),18,18,,262144,1,262144,6.866455078125e-05
-binary_serial,Binary serial baseline,18,18,,18,1,18,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,18,20,5,281,1,281,0.06405693950177936
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),20,20,,1048576,1,1048576,1.9073486328125e-05
-binary_serial,Binary serial baseline,20,20,,20,1,20,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,20,20,5,281,1,281,0.0711743772241993
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),22,22,,4194304,1,4194304,5.245208740234375e-06
-binary_serial,Binary serial baseline,22,22,,22,1,22,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,22,24,6,337,1,337,0.06528189910979229
-rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),24,24,,16777216,1,16777216,1.430511474609375e-06
-binary_serial,Binary serial baseline,24,24,,24,1,24,1.0
-matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,24,24,6,337,1,337,0.0712166172106825
+method,label,payload_bits,physical_streams,segment_bits,segment_capacity_bits,digit_count_per_stream,latency_ticks,stream_ticks,id_bits_per_stream_tick
+binary_serial_multistream,"Binary serial, N=1",128,1,128,128,,128,128,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",128,1,128,128,32,1793,1793,0.07138873396542109
+binary_serial_multistream,"Binary serial, N=4",128,4,32,32,,32,128,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",128,4,32,32,8,449,1796,0.07126948775055679
+binary_serial_multistream,"Binary serial, N=8",128,8,16,16,,16,128,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",128,8,16,16,4,225,1800,0.07111111111111111
+binary_serial_multistream,"Binary serial, N=16",128,16,8,8,,8,128,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",128,16,8,8,2,113,1808,0.07079646017699115
+binary_serial_multistream,"Binary serial, N=64",128,64,2,2,,2,128,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",128,64,2,4,1,57,3648,0.03508771929824561
+binary_serial_multistream,"Binary serial, N=1",256,1,256,256,,256,256,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",256,1,256,256,64,3585,3585,0.07140864714086471
+binary_serial_multistream,"Binary serial, N=4",256,4,64,64,,64,256,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",256,4,64,64,16,897,3588,0.0713489409141583
+binary_serial_multistream,"Binary serial, N=8",256,8,32,32,,32,256,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",256,8,32,32,8,449,3592,0.07126948775055679
+binary_serial_multistream,"Binary serial, N=16",256,16,16,16,,16,256,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",256,16,16,16,4,225,3600,0.07111111111111111
+binary_serial_multistream,"Binary serial, N=64",256,64,4,4,,4,256,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",256,64,4,4,1,57,3648,0.07017543859649122
+binary_serial_multistream,"Binary serial, N=1",512,1,512,512,,512,512,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",512,1,512,512,128,7169,7169,0.07141860789510392
+binary_serial_multistream,"Binary serial, N=4",512,4,128,128,,128,512,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",512,4,128,128,32,1793,7172,0.07138873396542109
+binary_serial_multistream,"Binary serial, N=8",512,8,64,64,,64,512,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",512,8,64,64,16,897,7176,0.0713489409141583
+binary_serial_multistream,"Binary serial, N=16",512,16,32,32,,32,512,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",512,16,32,32,8,449,7184,0.07126948775055679
+binary_serial_multistream,"Binary serial, N=64",512,64,8,8,,8,512,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",512,64,8,8,2,113,7232,0.07079646017699115
+binary_serial_multistream,"Binary serial, N=1",1024,1,1024,1024,,1024,1024,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",1024,1,1024,1024,256,14337,14337,0.07142358931436145
+binary_serial_multistream,"Binary serial, N=4",1024,4,256,256,,256,1024,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",1024,4,256,256,64,3585,14340,0.07140864714086471
+binary_serial_multistream,"Binary serial, N=8",1024,8,128,128,,128,1024,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",1024,8,128,128,32,1793,14344,0.07138873396542109
+binary_serial_multistream,"Binary serial, N=16",1024,16,64,64,,64,1024,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",1024,16,64,64,16,897,14352,0.0713489409141583
+binary_serial_multistream,"Binary serial, N=64",1024,64,16,16,,16,1024,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",1024,64,16,16,4,225,14400,0.07111111111111111
+binary_serial_multistream,"Binary serial, N=1",2048,1,2048,2048,,2048,2048,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",2048,1,2048,2048,512,28673,28673,0.07142608028458829
+binary_serial_multistream,"Binary serial, N=4",2048,4,512,512,,512,2048,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",2048,4,512,512,128,7169,28676,0.07141860789510392
+binary_serial_multistream,"Binary serial, N=8",2048,8,256,256,,256,2048,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",2048,8,256,256,64,3585,28680,0.07140864714086471
+binary_serial_multistream,"Binary serial, N=16",2048,16,128,128,,128,2048,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",2048,16,128,128,32,1793,28688,0.07138873396542109
+binary_serial_multistream,"Binary serial, N=64",2048,64,32,32,,32,2048,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",2048,64,32,32,8,449,28736,0.07126948775055679
+binary_serial_multistream,"Binary serial, N=1",4096,1,4096,4096,,4096,4096,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",4096,1,4096,4096,1024,57345,57345,0.07142732583485918
+binary_serial_multistream,"Binary serial, N=4",4096,4,1024,1024,,1024,4096,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",4096,4,1024,1024,256,14337,57348,0.07142358931436145
+binary_serial_multistream,"Binary serial, N=8",4096,8,512,512,,512,4096,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",4096,8,512,512,128,7169,57352,0.07141860789510392
+binary_serial_multistream,"Binary serial, N=16",4096,16,256,256,,256,4096,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",4096,16,256,256,64,3585,57360,0.07140864714086471
+binary_serial_multistream,"Binary serial, N=64",4096,64,64,64,,64,4096,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",4096,64,64,64,16,897,57408,0.0713489409141583
+binary_serial_multistream,"Binary serial, N=1",8192,1,8192,8192,,8192,8192,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",8192,1,8192,8192,2048,114689,114689,0.071427948626285
+binary_serial_multistream,"Binary serial, N=4",8192,4,2048,2048,,2048,8192,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",8192,4,2048,2048,512,28673,114692,0.07142608028458829
+binary_serial_multistream,"Binary serial, N=8",8192,8,1024,1024,,1024,8192,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",8192,8,1024,1024,256,14337,114696,0.07142358931436145
+binary_serial_multistream,"Binary serial, N=16",8192,16,512,512,,512,8192,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",8192,16,512,512,128,7169,114704,0.07141860789510392
+binary_serial_multistream,"Binary serial, N=64",8192,64,128,128,,128,8192,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",8192,64,128,128,32,1793,114752,0.07138873396542109
+binary_serial_multistream,"Binary serial, N=1",16384,1,16384,16384,,16384,16384,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",16384,1,16384,16384,4096,229377,229377,0.07142826002607061
+binary_serial_multistream,"Binary serial, N=4",16384,4,4096,4096,,4096,16384,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",16384,4,4096,4096,1024,57345,229380,0.07142732583485918
+binary_serial_multistream,"Binary serial, N=8",16384,8,2048,2048,,2048,16384,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",16384,8,2048,2048,512,28673,229384,0.07142608028458829
+binary_serial_multistream,"Binary serial, N=16",16384,16,1024,1024,,1024,16384,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",16384,16,1024,1024,256,14337,229392,0.07142358931436145
+binary_serial_multistream,"Binary serial, N=64",16384,64,256,256,,256,16384,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",16384,64,256,256,64,3585,229440,0.07140864714086471
+binary_serial_multistream,"Binary serial, N=1",32768,1,32768,32768,,32768,32768,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",32768,1,32768,32768,8192,458753,458753,0.07142841572698162
+binary_serial_multistream,"Binary serial, N=4",32768,4,8192,8192,,8192,32768,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",32768,4,8192,8192,2048,114689,458756,0.071427948626285
+binary_serial_multistream,"Binary serial, N=8",32768,8,4096,4096,,4096,32768,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",32768,8,4096,4096,1024,57345,458760,0.07142732583485918
+binary_serial_multistream,"Binary serial, N=16",32768,16,2048,2048,,2048,32768,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",32768,16,2048,2048,512,28673,458768,0.07142608028458829
+binary_serial_multistream,"Binary serial, N=64",32768,64,512,512,,512,32768,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",32768,64,512,512,128,7169,458816,0.07141860789510392
+binary_serial_multistream,"Binary serial, N=1",65536,1,65536,65536,,65536,65536,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=1",65536,1,65536,65536,16384,917505,917505,0.07142849357769167
+binary_serial_multistream,"Binary serial, N=4",65536,4,16384,16384,,16384,65536,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=4",65536,4,16384,16384,4096,229377,917508,0.07142826002607061
+binary_serial_multistream,"Binary serial, N=8",65536,8,8192,8192,,8192,65536,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=8",65536,8,8192,8192,2048,114689,917512,0.071427948626285
+binary_serial_multistream,"Binary serial, N=16",65536,16,4096,4096,,4096,65536,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=16",65536,16,4096,4096,1024,57345,917520,0.07142732583485918
+binary_serial_multistream,"Binary serial, N=64",65536,64,1024,1024,,1024,65536,1.0
+matrix_fractal_4x4_multistream,"Matrix-fractal 4x4, N=64",65536,64,1024,1024,256,14337,917568,0.07142358931436145

@@ -1,10 +1,8 @@
-"""Generate SNN-channel comparative metrics for the article.
+"""Generate multistream matrix-fractal vs binary-serial article metrics.
 
-This script compares a conservative matrix-fractal step-mode payload against
-single-channel value-resolution temporal/rate coding and an idealized binary
-serial baseline. The matrix-fractal latency is computed through the public
-``MatrixFractalNumber`` implementation, not through a hand-written surrogate
-formula.
+The comparison uses equal numbers of physical streams for both methods. For the
+matrix-fractal payload, the input bit payload is split across streams and each
+stream restarts its period hierarchy from the fastest digit channel.
 """
 
 from __future__ import annotations
@@ -38,13 +36,13 @@ def worst_case_value(base: int, digit_count: int) -> int:
     return sum((base - 1) * (base**index) for index in range(digit_count))
 
 
-def fractal_latency_ticks(
+def single_stream_fractal_latency_ticks(
     payload_bits: int,
     *,
     period_levels: int = 4,
     shift_levels: int = 4,
 ) -> tuple[int, int, int]:
-    """Return ``(latency_ticks, digit_count, payload_capacity_bits)``.
+    """Return ``(latency_ticks, digit_count, payload_capacity_bits)`` for one stream.
 
     ``payload_bits`` may not be divisible by ``log2(base)``. In that case the
     matrix-fractal payload allocates one extra digit; ``payload_capacity_bits``
@@ -64,57 +62,72 @@ def fractal_latency_ticks(
     return required_payload_ticks(cells), digit_count, payload_capacity_bits
 
 
+def multistream_fractal_metrics(
+    payload_bits: int,
+    physical_streams: int,
+    *,
+    period_levels: int = 4,
+    shift_levels: int = 4,
+) -> dict[str, float | int | str]:
+    """Compute parallel matrix-fractal transfer metrics.
+
+    The payload is split evenly across physical streams. Each stream encodes its
+    own segment, so its digit hierarchy starts from the fastest period band.
+    """
+
+    segment_bits = math.ceil(payload_bits / physical_streams)
+    latency_ticks, digit_count, segment_capacity_bits = single_stream_fractal_latency_ticks(
+        segment_bits,
+        period_levels=period_levels,
+        shift_levels=shift_levels,
+    )
+    stream_ticks = latency_ticks * physical_streams
+    return {
+        "method": "matrix_fractal_4x4_multistream",
+        "label": f"Matrix-fractal 4x4, N={physical_streams}",
+        "payload_bits": payload_bits,
+        "physical_streams": physical_streams,
+        "segment_bits": segment_bits,
+        "segment_capacity_bits": segment_capacity_bits,
+        "digit_count_per_stream": digit_count,
+        "latency_ticks": latency_ticks,
+        "stream_ticks": stream_ticks,
+        "id_bits_per_stream_tick": payload_bits / stream_ticks,
+    }
+
+
+def binary_serial_metrics(
+    payload_bits: int,
+    physical_streams: int,
+) -> dict[str, float | int | str]:
+    """Compute equal-stream binary serial reference metrics."""
+
+    segment_bits = math.ceil(payload_bits / physical_streams)
+    latency_ticks = segment_bits
+    stream_ticks = latency_ticks * physical_streams
+    return {
+        "method": "binary_serial_multistream",
+        "label": f"Binary serial, N={physical_streams}",
+        "payload_bits": payload_bits,
+        "physical_streams": physical_streams,
+        "segment_bits": segment_bits,
+        "segment_capacity_bits": segment_bits,
+        "digit_count_per_stream": "",
+        "latency_ticks": latency_ticks,
+        "stream_ticks": stream_ticks,
+        "id_bits_per_stream_tick": payload_bits / stream_ticks,
+    }
+
+
 def comparative_rows() -> list[dict[str, float | int | str]]:
     rows: list[dict[str, float | int | str]] = []
-    payload_sizes = list(range(2, 25, 2))
+    payload_sizes = [128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
+    stream_counts = [1, 4, 8, 16, 64]
 
     for payload_bits in payload_sizes:
-        baselines = [
-            (
-                "rate_ttfs_value_code_2powB_levels",
-                "Rate / TTFS value code (2^B levels)",
-                2**payload_bits,
-                1,
-                payload_bits,
-            ),
-            (
-                "binary_serial",
-                "Binary serial baseline",
-                payload_bits,
-                1,
-                payload_bits,
-            ),
-        ]
-        for method, label, latency_ticks, physical_streams, capacity_bits in baselines:
-            stream_ticks = latency_ticks * physical_streams
-            rows.append(
-                {
-                    "method": method,
-                    "label": label,
-                    "payload_bits": payload_bits,
-                    "payload_capacity_bits": capacity_bits,
-                    "digit_count": "",
-                    "latency_ticks": latency_ticks,
-                    "physical_streams": physical_streams,
-                    "stream_ticks": stream_ticks,
-                    "id_bits_per_stream_tick": payload_bits / stream_ticks,
-                }
-            )
-
-        latency_ticks, digit_count, capacity_bits = fractal_latency_ticks(payload_bits)
-        rows.append(
-            {
-                "method": "matrix_fractal_4x4_step_mode",
-                "label": "Matrix-fractal 4x4 step-mode",
-                "payload_bits": payload_bits,
-                "payload_capacity_bits": capacity_bits,
-                "digit_count": digit_count,
-                "latency_ticks": latency_ticks,
-                "physical_streams": 1,
-                "stream_ticks": latency_ticks,
-                "id_bits_per_stream_tick": payload_bits / latency_ticks,
-            }
-        )
+        for physical_streams in stream_counts:
+            rows.append(binary_serial_metrics(payload_bits, physical_streams))
+            rows.append(multistream_fractal_metrics(payload_bits, physical_streams))
     return rows
 
 
@@ -129,26 +142,33 @@ def write_csv(rows: list[dict[str, float | int | str]]) -> None:
 
 def plot_latency(rows: list[dict[str, float | int | str]]) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
-    styles = {
-        "rate_ttfs_value_code_2powB_levels": ("o", "red"),
-        "matrix_fractal_4x4_step_mode": ("s", "blue"),
-        "binary_serial": ("^", "green"),
-    }
-    for method in styles:
-        group = [row for row in rows if row["method"] == method]
-        marker, color = styles[method]
+    styles = [
+        ("binary_serial_multistream", 1, "^", "darkgreen", "--"),
+        ("matrix_fractal_4x4_multistream", 1, "s", "navy", "-"),
+        ("binary_serial_multistream", 8, "^", "limegreen", "--"),
+        ("matrix_fractal_4x4_multistream", 8, "s", "royalblue", "-"),
+        ("binary_serial_multistream", 16, "^", "olive", "--"),
+        ("matrix_fractal_4x4_multistream", 16, "s", "deepskyblue", "-"),
+    ]
+    for method, streams, marker, color, linestyle in styles:
+        group = [
+            row
+            for row in rows
+            if row["method"] == method and row["physical_streams"] == streams
+        ]
         ax.plot(
             [row["payload_bits"] for row in group],
             [row["latency_ticks"] for row in group],
             label=str(group[0]["label"]),
             marker=marker,
             color=color,
+            linestyle=linestyle,
         )
 
     ax.set_yscale("log", base=10)
     ax.set_xlabel("Payload size, bits")
     ax.set_ylabel("Latency, ticks")
-    ax.set_title("SNN-channel payload transmission: latency")
+    ax.set_title("Multistream payload transmission: latency")
     ax.legend()
     ax.grid(True, which="both", linestyle="--", alpha=0.5)
     fig.tight_layout()
@@ -158,26 +178,33 @@ def plot_latency(rows: list[dict[str, float | int | str]]) -> None:
 
 def plot_information_density(rows: list[dict[str, float | int | str]]) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
-    styles = {
-        "rate_ttfs_value_code_2powB_levels": ("o", "red"),
-        "matrix_fractal_4x4_step_mode": ("s", "blue"),
-        "binary_serial": ("^", "green"),
-    }
-    for method in styles:
-        group = [row for row in rows if row["method"] == method]
-        marker, color = styles[method]
+    styles = [
+        ("binary_serial_multistream", 1, "^", "darkgreen", "--"),
+        ("matrix_fractal_4x4_multistream", 1, "s", "navy", "-"),
+        ("binary_serial_multistream", 8, "^", "limegreen", "--"),
+        ("matrix_fractal_4x4_multistream", 8, "s", "royalblue", "-"),
+        ("binary_serial_multistream", 16, "^", "olive", "--"),
+        ("matrix_fractal_4x4_multistream", 16, "s", "deepskyblue", "-"),
+    ]
+    for method, streams, marker, color, linestyle in styles:
+        group = [
+            row
+            for row in rows
+            if row["method"] == method and row["physical_streams"] == streams
+        ]
         ax.plot(
             [row["payload_bits"] for row in group],
             [row["id_bits_per_stream_tick"] for row in group],
             label=str(group[0]["label"]),
             marker=marker,
             color=color,
+            linestyle=linestyle,
         )
 
     ax.set_yscale("log", base=10)
     ax.set_xlabel("Payload size, bits")
     ax.set_ylabel("Information density, bits / stream-tick")
-    ax.set_title("SNN-channel payload transmission: information density")
+    ax.set_title("Multistream payload transmission: information density")
     ax.legend()
     ax.grid(True, which="both", linestyle="--", alpha=0.5)
     fig.tight_layout()

@@ -18,7 +18,8 @@ Implemented:
 - `snn_framework/frequency_phase_digit.py` - frequency-phase digit matrix.
 - `snn_framework/o1_decoder.py` - direct tick extraction research for base/global-shift channels.
 - `tests/` - regression tests for the mathematical core.
-- `experiments/` - notebooks and scripts for article figures and metrics.
+- `experiments/` - exploratory notebooks.
+- `article_assets/` - reproducible article scripts, notebooks, generated figures, and CSV metrics.
 
 The prototype currently verifies representation and roundtrip decoding. It does not yet prove final hardware bandwidth superiority. High-density physical modes require further research into correlation decoders, spike-mode encodings, analog phase receivers, and learned SNN/population decoders.
 
@@ -143,7 +144,7 @@ article_assets/outputs/figure_3_efficiency_required_ticks.png
 article_assets/outputs/figure_4_efficiency_id.png
 ```
 
-Generate SNN-channel comparative metrics:
+Generate multistream comparative metrics against an idealized binary serial reference:
 
 ```powershell
 python article_assets/scripts/generate_snn_comparative_metrics.py
@@ -157,6 +158,8 @@ article_assets/outputs/figure_3_comparative_latency.png
 article_assets/outputs/figure_4_comparative_id.png
 ```
 
+The multistream comparison splits the same payload across equal numbers of physical streams for both methods. For `MatrixFractalNumber`, each stream restarts its period hierarchy from the fastest digit channel; for `Binary Serial`, each stream carries one bit per tick under an ideal external clock.
+
 See `article_assets/README.md` for descriptions of every generated figure and metric file.
 
 ## Efficiency Interpretation
@@ -169,7 +172,7 @@ For the current prototype, payload latency is estimated as:
 required_payload_ticks = max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
 ```
 
-This is intentionally stricter than simply counting matrix-radix digits. Therefore, current metrics should be interpreted as a baseline for correct representation and decoding, not as the final limit of fractal SNN-channel bandwidth.
+This is intentionally stricter than simply counting matrix-radix digits. Therefore, current metrics should be interpreted as a baseline for correct representation and decoding, not as the final limit of fractal SNN-channel bandwidth. The idealized binary serial line in the comparative plots is a synchronized lower-bound reference, not an SNN-native value code.
 
 Future high-density research directions:
 
@@ -188,8 +191,9 @@ Available exploratory notebooks:
 - `experiments/fractal_packet_demo.ipynb`
 - `experiments/fractal_number_robustness_experiment.ipynb`
 - `experiments/fractal_number_compression_experiment.ipynb`
+- `article_assets/notebooks/multistream_fractal_vs_binary.ipynb`
 
-The scripts in `experiments/*.py` are preferred for reproducible article artifacts.
+The scripts in `article_assets/scripts/*.py` are preferred for reproducible article artifacts.
 
 ## Roadmap
 

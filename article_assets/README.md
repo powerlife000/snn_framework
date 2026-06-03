@@ -11,6 +11,8 @@ article_assets/
     generate_article_figures.py
     article_efficiency_metrics.py
     generate_snn_comparative_metrics.py
+  notebooks/
+    multistream_fractal_vs_binary.ipynb
   outputs/
     article_efficiency_metrics.csv
     snn_comparative_metrics.csv
@@ -86,25 +88,28 @@ Use this figure to explain the current limitation and motivate future high-densi
 
 ### `figure_3_comparative_latency.png`
 
-SNN-channel latency comparison across payload sizes.
+Multistream latency comparison across large payload sizes.
 
 The figure compares:
 
-- `Rate / TTFS value code (2^B levels)`;
-- `Binary serial baseline`;
-- `Matrix-fractal 4x4 step-mode`.
+- `Binary serial, N=1`;
+- `Matrix-fractal 4x4, N=1`;
+- `Binary serial, N=8`;
+- `Matrix-fractal 4x4, N=8`;
+- `Binary serial, N=16`;
+- `Matrix-fractal 4x4, N=16`.
 
-The rate/TTFS line assumes a single-channel value code that must distinguish `2^B` discrete levels with one-tick resolution. The matrix-fractal line is computed through the public `MatrixFractalNumber` implementation and uses the conservative observation window:
+The matrix-fractal payload is split across `N` physical streams. Each stream restarts the period hierarchy from its fastest digit channel. The binary reference receives the same number of physical streams and transmits one bit per stream tick. Matrix-fractal latency is computed through the public `MatrixFractalNumber` implementation and uses the conservative observation window:
 
 ```text
 required_payload_ticks = max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
 ```
 
-Use this figure in the article section comparing SNN-style payload transmission methods.
+Use this figure in the article section that explains fair multichannel resource accounting against an ideal synchronized binary serial reference.
 
 ### `figure_4_comparative_id.png`
 
-SNN-channel information-density comparison.
+Multistream information-density comparison.
 
 The figure uses:
 
@@ -112,7 +117,11 @@ The figure uses:
 ID = payload_bits / (latency_ticks * physical_streams)
 ```
 
-It shows that the current conservative matrix-fractal baseline improves over a single-channel value-resolution rate/TTFS code, while still being below the idealized binary serial baseline.
+It shows that multistreaming reduces latency for both methods. In the current canonical step generator, matrix-fractal ID remains below the idealized binary serial lower bound; the result should be interpreted as honest resource accounting for the proof-of-concept generator, not as a final bandwidth limit of fractal-number channels.
+
+### `notebooks/multistream_fractal_vs_binary.ipynb`
+
+Reproducible notebook for the same comparison. It is intended for article review, quick table inspection, and interactive variations of `payload_bits` and `physical_streams`.
 
 ## Generated Data
 
@@ -147,10 +156,11 @@ Columns include:
 - `method`
 - `label`
 - `payload_bits`
-- `payload_capacity_bits`
-- `digit_count`
-- `latency_ticks`
 - `physical_streams`
+- `segment_bits`
+- `segment_capacity_bits`
+- `digit_count_per_stream`
+- `latency_ticks`
 - `stream_ticks`
 - `id_bits_per_stream_tick`
 
@@ -162,4 +172,5 @@ Therefore, these figures should be interpreted as a reproducible conservative ba
 
 - proves representation and decoding correctness;
 - exposes current latency/resource costs;
+- demonstrates fair multistream scaling where each fractal stream restarts its hierarchy;
 - motivates future high-density modes such as correlation decoding, sparse spike-mode, analog phase receivers, and learned SNN/population decoders.
