@@ -1,0 +1,37 @@
+method,label,payload_bits,payload_capacity_bits,digit_count,latency_ticks,physical_streams,stream_ticks,id_bits_per_stream_tick
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),2,2,,4,1,4,0.5
+binary_serial,Binary serial baseline,2,2,,2,1,2,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,2,4,1,57,1,57,0.03508771929824561
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),4,4,,16,1,16,0.25
+binary_serial,Binary serial baseline,4,4,,4,1,4,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,4,4,1,57,1,57,0.07017543859649122
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),6,6,,64,1,64,0.09375
+binary_serial,Binary serial baseline,6,6,,6,1,6,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,6,8,2,113,1,113,0.05309734513274336
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),8,8,,256,1,256,0.03125
+binary_serial,Binary serial baseline,8,8,,8,1,8,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,8,8,2,113,1,113,0.07079646017699115
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),10,10,,1024,1,1024,0.009765625
+binary_serial,Binary serial baseline,10,10,,10,1,10,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,10,12,3,169,1,169,0.05917159763313609
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),12,12,,4096,1,4096,0.0029296875
+binary_serial,Binary serial baseline,12,12,,12,1,12,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,12,12,3,169,1,169,0.07100591715976332
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),14,14,,16384,1,16384,0.0008544921875
+binary_serial,Binary serial baseline,14,14,,14,1,14,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,14,16,4,225,1,225,0.06222222222222222
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),16,16,,65536,1,65536,0.000244140625
+binary_serial,Binary serial baseline,16,16,,16,1,16,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,16,16,4,225,1,225,0.07111111111111111
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),18,18,,262144,1,262144,6.866455078125e-05
+binary_serial,Binary serial baseline,18,18,,18,1,18,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,18,20,5,281,1,281,0.06405693950177936
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),20,20,,1048576,1,1048576,1.9073486328125e-05
+binary_serial,Binary serial baseline,20,20,,20,1,20,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,20,20,5,281,1,281,0.0711743772241993
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),22,22,,4194304,1,4194304,5.245208740234375e-06
+binary_serial,Binary serial baseline,22,22,,22,1,22,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,22,24,6,337,1,337,0.06528189910979229
+rate_ttfs_value_code_2powB_levels,Rate / TTFS value code (2^B levels),24,24,,16777216,1,16777216,1.430511474609375e-06
+binary_serial,Binary serial baseline,24,24,,24,1,24,1.0
+matrix_fractal_4x4_step_mode,Matrix-fractal 4x4 step-mode,24,24,6,337,1,337,0.0712166172106825

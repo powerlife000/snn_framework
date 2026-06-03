@@ -10,12 +10,16 @@ article_assets/
   scripts/
     generate_article_figures.py
     article_efficiency_metrics.py
+    generate_snn_comparative_metrics.py
   outputs/
     article_efficiency_metrics.csv
+    snn_comparative_metrics.csv
     figure_1_signal_2748.png
     figure_2_residual_peeling_2748.png
     figure_3_efficiency_required_ticks.png
     figure_4_efficiency_id.png
+    figure_3_comparative_latency.png
+    figure_4_comparative_id.png
 ```
 
 ## Reproduce
@@ -25,6 +29,7 @@ From the repository root:
 ```powershell
 python article_assets/scripts/generate_article_figures.py
 python article_assets/scripts/article_efficiency_metrics.py
+python article_assets/scripts/generate_snn_comparative_metrics.py
 ```
 
 ## Generated Figures
@@ -79,6 +84,36 @@ The dashed horizontal line marks the binary one-bit-per-stream-tick baseline. Th
 
 Use this figure to explain the current limitation and motivate future high-density decoders.
 
+### `figure_3_comparative_latency.png`
+
+SNN-channel latency comparison across payload sizes.
+
+The figure compares:
+
+- `Rate / TTFS value code (2^B levels)`;
+- `Binary serial baseline`;
+- `Matrix-fractal 4x4 step-mode`.
+
+The rate/TTFS line assumes a single-channel value code that must distinguish `2^B` discrete levels with one-tick resolution. The matrix-fractal line is computed through the public `MatrixFractalNumber` implementation and uses the conservative observation window:
+
+```text
+required_payload_ticks = max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
+```
+
+Use this figure in the article section comparing SNN-style payload transmission methods.
+
+### `figure_4_comparative_id.png`
+
+SNN-channel information-density comparison.
+
+The figure uses:
+
+```text
+ID = payload_bits / (latency_ticks * physical_streams)
+```
+
+It shows that the current conservative matrix-fractal baseline improves over a single-channel value-resolution rate/TTFS code, while still being below the idealized binary serial baseline.
+
 ## Generated Data
 
 ### `article_efficiency_metrics.csv`
@@ -102,6 +137,22 @@ Columns include:
 - `amplitude_resolution_bits`
 - `id_bits_per_stream_tick`
 - `adjusted_id`
+
+### `snn_comparative_metrics.csv`
+
+CSV table used to generate the comparative SNN-channel figures.
+
+Columns include:
+
+- `method`
+- `label`
+- `payload_bits`
+- `payload_capacity_bits`
+- `digit_count`
+- `latency_ticks`
+- `physical_streams`
+- `stream_ticks`
+- `id_bits_per_stream_tick`
 
 ## Interpretation
 

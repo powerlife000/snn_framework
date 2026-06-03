@@ -143,6 +143,20 @@ article_assets/outputs/figure_3_efficiency_required_ticks.png
 article_assets/outputs/figure_4_efficiency_id.png
 ```
 
+Generate SNN-channel comparative metrics:
+
+```powershell
+python article_assets/scripts/generate_snn_comparative_metrics.py
+```
+
+Outputs:
+
+```text
+article_assets/outputs/snn_comparative_metrics.csv
+article_assets/outputs/figure_3_comparative_latency.png
+article_assets/outputs/figure_4_comparative_id.png
+```
+
 See `article_assets/README.md` for descriptions of every generated figure and metric file.
 
 ## Efficiency Interpretation
