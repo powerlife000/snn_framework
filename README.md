@@ -114,34 +114,36 @@ Current expected result:
 32 passed
 ```
 
-## Reproduce Article Figures
+## Reproduce Article Assets
 
 Generate signal and residual-peeling figures:
 
 ```powershell
-python experiments/generate_article_figures.py
+python article_assets/scripts/generate_article_figures.py
 ```
 
 Outputs:
 
 ```text
-experiments/article_outputs/figure_1_signal_2748.png
-experiments/article_outputs/figure_2_residual_peeling_2748.png
+article_assets/outputs/figure_1_signal_2748.png
+article_assets/outputs/figure_2_residual_peeling_2748.png
 ```
 
 Generate efficiency metrics and plots:
 
 ```powershell
-python experiments/article_efficiency_metrics.py
+python article_assets/scripts/article_efficiency_metrics.py
 ```
 
 Outputs:
 
 ```text
-experiments/article_outputs/article_efficiency_metrics.csv
-experiments/article_outputs/figure_3_efficiency_required_ticks.png
-experiments/article_outputs/figure_4_efficiency_id.png
+article_assets/outputs/article_efficiency_metrics.csv
+article_assets/outputs/figure_3_efficiency_required_ticks.png
+article_assets/outputs/figure_4_efficiency_id.png
 ```
+
+See `article_assets/README.md` for descriptions of every generated figure and metric file.
 
 ## Efficiency Interpretation
 

@@ -7,14 +7,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from snn_framework import MatrixFractalNumber
 
 
-OUTPUT_DIR = Path(__file__).resolve().parent / "article_outputs"
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs"
 
 
 def make_demo_signal(value: int = 2748, digit_count: int = 3, ticks: int = 120):
@@ -87,7 +87,7 @@ def plot_residual_peeling() -> None:
 def main() -> None:
     plot_signal()
     plot_residual_peeling()
-    print("Wrote article figures to experiments/article_outputs")
+    print("Wrote article figures to article_assets/outputs")
 
 
 if __name__ == "__main__":

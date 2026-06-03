@@ -1,6 +1,6 @@
 """Generate reproducible SNN-channel efficiency metrics for the article.
 
-The current matrix-fractal prototype is a conservative step-mode baseline.  It
+The current matrix-fractal prototype is a conservative step-mode baseline. It
 is designed to prove that a period-shift payload can be encoded, summed, and
 decoded, not to claim final hardware bandwidth limits.
 """
@@ -14,14 +14,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from snn_framework import MatrixFractalNumber
 
 
-OUTPUT_DIR = Path(__file__).resolve().parent / "article_outputs"
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs"
 
 
 def required_payload_ticks(cells) -> int:
@@ -167,7 +167,7 @@ def main() -> None:
     rows = baseline_rows() + matrix_fractal_rows()
     write_csv(rows, OUTPUT_DIR / "article_efficiency_metrics.csv")
     plot_metrics(rows)
-    print("Wrote metrics and plots to experiments/article_outputs")
+    print("Wrote metrics and plots to article_assets/outputs")
 
 
 if __name__ == "__main__":
