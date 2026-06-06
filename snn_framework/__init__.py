@@ -17,6 +17,7 @@ from .fractal_packet import (
     PacketSample,
 )
 from .matrix_fractal_number import (
+    ChannelAlphabet,
     ChannelSchedule,
     DirectDecodeResult,
     MatrixCell,
@@ -29,6 +30,7 @@ from .o1_decoder import AmbiguousDecodingError, O1DecodeResult
 __all__ = [
     "AmbiguousDecodingError",
     "ChannelParameters",
+    "ChannelAlphabet",
     "ChannelSchedule",
     "DirectDecodeResult",
     "DigitCell",

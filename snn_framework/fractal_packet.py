@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import ceil, log2
 from typing import Sequence
 
 from .matrix_fractal_number import MatrixCell, MatrixFractalNumber, SignalSample
@@ -75,6 +74,7 @@ class FractalSNNPacketCodec:
     PAYLOAD_START_GUARD = (0, 0, 0, 0)
     END_GUARD = (0, 0, 0, 0)
     END_DELIMITER = (1, 0, 0, 1, 1, 1, 0)
+    DIGIT_COUNT_WIDTH = 8
 
     def __init__(
         self,
@@ -89,7 +89,11 @@ class FractalSNNPacketCodec:
 
     @property
     def check_width(self) -> int:
-        return max(1, ceil(log2(self.number.base)))
+        return 8
+
+    @property
+    def check_modulus(self) -> int:
+        return 1 << self.check_width
 
     def encode(
         self,
@@ -111,7 +115,7 @@ class FractalSNNPacketCodec:
         if payload_ticks < required_payload_ticks:
             raise ValueError("payload_ticks is too short for direct payload decoding")
 
-        check_value = sum(digits) % self.number.base
+        check_value = self._payload_check(digits)
         check_pattern = self._int_to_service_bits(check_value, self.check_width)
 
         samples: list[PacketSample] = []
@@ -137,6 +141,13 @@ class FractalSNNPacketCodec:
             "SIGN",
             self._sign_pattern(sign, absolute_value),
             "sign-magnitude sign code",
+        )
+        self._append_service_field(
+            samples,
+            fields,
+            "DIGIT_COUNT",
+            self._int_to_service_bits(digit_count, self.DIGIT_COUNT_WIDTH),
+            "mixed-radix payload digit count",
         )
         self._append_service_field(
             samples,
@@ -171,7 +182,7 @@ class FractalSNNPacketCodec:
             fields,
             "CHECK",
             check_pattern,
-            "sum(payload digits) mod base",
+            "weighted sum(mixed-radix payload digits) mod 256",
         )
 
         return FractalPacketEncodeResult(
@@ -203,6 +214,13 @@ class FractalSNNPacketCodec:
         sign = self._decode_sign(sign_pattern)
         cursor += 2
 
+        digit_count = self._service_bits_to_int(
+            bits[cursor : cursor + self.DIGIT_COUNT_WIDTH]
+        )
+        if digit_count < 1:
+            raise ValueError("DIGIT_COUNT must be positive")
+        cursor += self.DIGIT_COUNT_WIDTH
+
         self._expect_pattern(bits, cursor, self.PAYLOAD_START_GUARD, "PAYLOAD_START_GUARD")
         cursor += len(self.PAYLOAD_START_GUARD)
         payload_start_tick = cursor
@@ -227,7 +245,7 @@ class FractalSNNPacketCodec:
             try:
                 payload_result = self.number.decode_step_signal(
                     payload_signal,
-                    digit_count=self._infer_digit_count(payload_signal),
+                    digit_count=digit_count,
                 )
             except ValueError as error:
                 candidate_errors.append(error)
@@ -235,7 +253,7 @@ class FractalSNNPacketCodec:
                 continue
 
             digits = payload_result.digits
-            expected_check_value = sum(digits) % self.number.base
+            expected_check_value = self._payload_check(digits)
             if check_value != expected_check_value:
                 check_mismatch_seen = True
                 search_from = end_start + 1
@@ -328,7 +346,7 @@ class FractalSNNPacketCodec:
     def _required_payload_ticks(cells: Sequence[MatrixCell]) -> int:
         if not cells:
             raise ValueError("at least one payload cell is required")
-        return max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
+        return max(cell.shift_ticks + 3 * cell.period_ticks for cell in cells) + 1
 
     @classmethod
     def _sign_pattern(cls, sign: int, absolute_value: int) -> tuple[int, ...]:
@@ -360,6 +378,14 @@ class FractalSNNPacketCodec:
                 raise ValueError("service bits must contain only 0 and 1")
             value = (value << 1) | int(bit)
         return value
+
+    def _payload_check(self, digits: Sequence[int]) -> int:
+        """Small service checksum independent of a single global radix."""
+
+        return (
+            sum((index + 1) * int(digit) for index, digit in enumerate(digits))
+            % self.check_modulus
+        )
 
     @staticmethod
     def _sample_values(samples: Sequence[float | PacketSample]) -> list[float]:

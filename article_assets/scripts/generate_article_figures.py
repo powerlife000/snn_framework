@@ -12,14 +12,20 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from snn_framework import MatrixFractalNumber
+try:
+    from .dynamic_alphabet_helpers import required_payload_ticks
+except ImportError:
+    from dynamic_alphabet_helpers import required_payload_ticks
 
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs"
 
 
-def make_demo_signal(value: int = 2748, digit_count: int = 3, ticks: int = 120):
-    model = MatrixFractalNumber(period_levels=4, shift_levels=4, base_period_ticks=8)
+def make_demo_signal(value: int = 348, digit_count: int = 2, ticks: int | None = None):
+    model = MatrixFractalNumber.article_348_alphabet()
     cells = model.encode_cells(value, digit_count=digit_count)
+    if ticks is None:
+        ticks = required_payload_ticks(cells)
     samples = model.signal(value, digit_count=digit_count, ticks=ticks)
     channel_series = [
         [sample.channel_amplitudes[channel] for sample in samples]
@@ -41,7 +47,7 @@ def plot_signal() -> None:
         axes[index].set_ylim(-0.15, 1.25)
         axes[index].set_ylabel(f"C{index}")
         axes[index].set_title(
-            f"channel {index}: digit={cell.digit_value}, P={cell.period_ticks}, S={cell.shift_ticks}"
+            f"channel {index}: row={cell.period_index}, P={cell.period_ticks}, S={cell.shift_value}"
         )
         axes[index].grid(True, alpha=0.25)
 
@@ -50,9 +56,9 @@ def plot_signal() -> None:
     axes[-1].set_xlabel("tick")
     axes[-1].set_title("Summed amplitude stream A(t)")
     axes[-1].grid(True, alpha=0.25)
-    fig.suptitle("Figure 1. Matrix-fractal signal for value 2748", y=0.995)
+    fig.suptitle("Figure 1. Matrix-channel fractal signal for value 348", y=0.995)
     fig.tight_layout()
-    fig.savefig(OUTPUT_DIR / "figure_1_signal_2748.png", dpi=180)
+    fig.savefig(OUTPUT_DIR / "figure_1_signal_matrix_348.png", dpi=180)
     plt.close(fig)
 
 
@@ -68,7 +74,7 @@ def plot_residual_peeling() -> None:
             1.0 if model.cell_schedule(cell).is_active(tick) else 0.0
             for tick in ticks
         ]
-        rows.append((f"C{cell.digit_index}(t), digit={cell.digit_value}", channel))
+        rows.append((f"C{cell.digit_index}(t), P={cell.period_ticks}, S={cell.shift_value}", channel))
         residual = [value - channel_value for value, channel_value in zip(residual, channel)]
         rows.append((f"residual after C{cell.digit_index}", residual.copy()))
 
@@ -78,9 +84,9 @@ def plot_residual_peeling() -> None:
         ax.set_ylabel(label)
         ax.grid(True, alpha=0.25)
     axes[-1].set_xlabel("tick")
-    fig.suptitle("Figure 2. Residual peeling for value 2748", y=0.995)
+    fig.suptitle("Figure 2. Residual peeling for value 348", y=0.995)
     fig.tight_layout()
-    fig.savefig(OUTPUT_DIR / "figure_2_residual_peeling_2748.png", dpi=180)
+    fig.savefig(OUTPUT_DIR / "figure_2_residual_peeling_matrix_348.png", dpi=180)
     plt.close(fig)
 
 

@@ -19,28 +19,31 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from snn_framework import MatrixFractalNumber
+try:
+    from .dynamic_alphabet_helpers import (
+        capacity_bits,
+        contiguous_equal_width,
+        digit_count_for_payload,
+        required_payload_ticks,
+        worst_case_value,
+    )
+except ImportError:
+    from dynamic_alphabet_helpers import (
+        capacity_bits,
+        contiguous_equal_width,
+        digit_count_for_payload,
+        required_payload_ticks,
+        worst_case_value,
+    )
 
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs"
 
 
-def required_payload_ticks(cells) -> int:
-    """Observation window required by the current direct payload decoder."""
-
-    return max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
-
-
-def worst_case_value(base: int, digit_count: int) -> int:
-    """Number whose every matrix-radix digit is the largest digit."""
-
-    return sum((base - 1) * (base**index) for index in range(digit_count))
-
-
 def single_stream_fractal_latency_ticks(
     payload_bits: int,
     *,
-    period_levels: int = 4,
-    shift_levels: int = 4,
+    model: MatrixFractalNumber | None = None,
 ) -> tuple[int, int, int]:
     """Return ``(latency_ticks, digit_count, payload_capacity_bits)`` for one stream.
 
@@ -49,15 +52,11 @@ def single_stream_fractal_latency_ticks(
     records the representable payload size for the selected digit count.
     """
 
-    model = MatrixFractalNumber(
-        period_levels=period_levels,
-        shift_levels=shift_levels,
-        base_period_ticks=max(8, shift_levels),
-    )
-    bits_per_digit = math.log2(model.base)
-    digit_count = math.ceil(payload_bits / bits_per_digit)
-    payload_capacity_bits = int(digit_count * bits_per_digit)
-    value = worst_case_value(model.base, digit_count)
+    if model is None:
+        model = contiguous_equal_width(width=8)
+    digit_count = digit_count_for_payload(model, payload_bits)
+    payload_capacity_bits = int(math.floor(capacity_bits(model, digit_count)))
+    value = worst_case_value(model, digit_count)
     cells = model.encode_cells(value, digit_count=digit_count)
     return required_payload_ticks(cells), digit_count, payload_capacity_bits
 
@@ -66,8 +65,7 @@ def multistream_fractal_metrics(
     payload_bits: int,
     physical_streams: int,
     *,
-    period_levels: int = 4,
-    shift_levels: int = 4,
+    model: MatrixFractalNumber | None = None,
 ) -> dict[str, float | int | str]:
     """Compute parallel matrix-fractal transfer metrics.
 
@@ -78,13 +76,12 @@ def multistream_fractal_metrics(
     segment_bits = math.ceil(payload_bits / physical_streams)
     latency_ticks, digit_count, segment_capacity_bits = single_stream_fractal_latency_ticks(
         segment_bits,
-        period_levels=period_levels,
-        shift_levels=shift_levels,
+        model=model,
     )
     stream_ticks = latency_ticks * physical_streams
     return {
-        "method": "matrix_fractal_4x4_multistream",
-        "label": f"Matrix-fractal 4x4, N={physical_streams}",
+        "method": "matrix_channel_width8_multistream",
+        "label": f"Matrix channel width=8, N={physical_streams}",
         "payload_bits": payload_bits,
         "physical_streams": physical_streams,
         "segment_bits": segment_bits,
@@ -121,13 +118,20 @@ def binary_serial_metrics(
 
 def comparative_rows() -> list[dict[str, float | int | str]]:
     rows: list[dict[str, float | int | str]] = []
-    payload_sizes = [128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
+    payload_sizes = [128, 256, 512, 1024, 2048, 4096, 8192]
     stream_counts = [1, 4, 8, 16, 64]
+    model = contiguous_equal_width(width=8)
 
     for payload_bits in payload_sizes:
         for physical_streams in stream_counts:
             rows.append(binary_serial_metrics(payload_bits, physical_streams))
-            rows.append(multistream_fractal_metrics(payload_bits, physical_streams))
+            rows.append(
+                multistream_fractal_metrics(
+                    payload_bits,
+                    physical_streams,
+                    model=model,
+                )
+            )
     return rows
 
 
@@ -144,11 +148,11 @@ def plot_latency(rows: list[dict[str, float | int | str]]) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     styles = [
         ("binary_serial_multistream", 1, "^", "darkgreen", "--"),
-        ("matrix_fractal_4x4_multistream", 1, "s", "navy", "-"),
+        ("matrix_channel_width8_multistream", 1, "s", "navy", "-"),
         ("binary_serial_multistream", 8, "^", "limegreen", "--"),
-        ("matrix_fractal_4x4_multistream", 8, "s", "royalblue", "-"),
+        ("matrix_channel_width8_multistream", 8, "s", "royalblue", "-"),
         ("binary_serial_multistream", 16, "^", "olive", "--"),
-        ("matrix_fractal_4x4_multistream", 16, "s", "deepskyblue", "-"),
+        ("matrix_channel_width8_multistream", 16, "s", "deepskyblue", "-"),
     ]
     for method, streams, marker, color, linestyle in styles:
         group = [
@@ -180,11 +184,11 @@ def plot_information_density(rows: list[dict[str, float | int | str]]) -> None:
     fig, ax = plt.subplots(figsize=(10, 6))
     styles = [
         ("binary_serial_multistream", 1, "^", "darkgreen", "--"),
-        ("matrix_fractal_4x4_multistream", 1, "s", "navy", "-"),
+        ("matrix_channel_width8_multistream", 1, "s", "navy", "-"),
         ("binary_serial_multistream", 8, "^", "limegreen", "--"),
-        ("matrix_fractal_4x4_multistream", 8, "s", "royalblue", "-"),
+        ("matrix_channel_width8_multistream", 8, "s", "royalblue", "-"),
         ("binary_serial_multistream", 16, "^", "olive", "--"),
-        ("matrix_fractal_4x4_multistream", 16, "s", "deepskyblue", "-"),
+        ("matrix_channel_width8_multistream", 16, "s", "deepskyblue", "-"),
     ]
     for method, streams, marker, color, linestyle in styles:
         group = [

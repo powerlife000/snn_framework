@@ -19,39 +19,38 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from snn_framework import MatrixFractalNumber
+try:
+    from .dynamic_alphabet_helpers import (
+        capacity_bits,
+        custom_rule_examples,
+        required_payload_ticks,
+        worst_case_value,
+    )
+except ImportError:
+    from dynamic_alphabet_helpers import (
+        capacity_bits,
+        custom_rule_examples,
+        required_payload_ticks,
+        worst_case_value,
+    )
 
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs"
 
 
-def required_payload_ticks(cells) -> int:
-    """Observation window required by the current direct payload decoder."""
-
-    return max(cell.shift_ticks + cell.period_ticks for cell in cells) + 1
-
-
-def worst_case_value(base: int, digit_count: int) -> int:
-    """Number whose every matrix-radix digit is the largest digit."""
-
-    return sum((base - 1) * (base**index) for index in range(digit_count))
-
-
 def matrix_fractal_rows() -> list[dict[str, float | int | str]]:
     rows: list[dict[str, float | int | str]] = []
-    configs = [(2, 4), (4, 4), (8, 8), (16, 16)]
-    digit_counts = [2, 4, 8, 16, 32, 64]
+    configs = custom_rule_examples()
+    digit_counts = [2, 4, 8, 16, 32]
 
-    for period_levels, shift_levels in configs:
-        model = MatrixFractalNumber(
-            period_levels=period_levels,
-            shift_levels=shift_levels,
-            base_period_ticks=max(8, shift_levels),
-        )
+    for method, label, model in configs:
         for digit_count in digit_counts:
-            value = worst_case_value(model.base, digit_count)
+            if method == "article_348_alphabet" and digit_count > 2:
+                continue
+            value = worst_case_value(model, digit_count)
             cells = model.encode_cells(value, digit_count=digit_count)
             ticks = required_payload_ticks(cells)
-            payload_bits = digit_count * math.log2(model.base)
+            payload_bits = capacity_bits(model, digit_count)
             max_amplitude = digit_count
             amplitude_resolution_bits = math.log2(max_amplitude + 1)
             stream_ticks = ticks
@@ -59,11 +58,12 @@ def matrix_fractal_rows() -> list[dict[str, float | int | str]]:
             adjusted_id = payload_bits / (stream_ticks * amplitude_resolution_bits)
             rows.append(
                 {
-                    "method": f"matrix_fractal_{period_levels}x{shift_levels}",
-                    "family": "matrix fractal step-mode",
-                    "period_levels": period_levels,
-                    "shift_levels": shift_levels,
-                    "base": model.base,
+                    "method": method,
+                    "label": label,
+                    "family": "matrix channel step-mode",
+                    "period_levels": "",
+                    "shift_levels": "P_max per channel",
+                    "base": "mixed",
                     "digit_count": digit_count,
                     "payload_bits": payload_bits,
                     "latency_ticks": ticks,
@@ -109,15 +109,16 @@ def baseline_rows() -> list[dict[str, float | int | str]]:
 
 def write_csv(rows: list[dict[str, float | int | str]], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = sorted({field for row in rows for field in row})
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
 
 def plot_metrics(rows: list[dict[str, float | int | str]]) -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    fractal_rows = [row for row in rows if row["family"] == "matrix fractal step-mode"]
+    fractal_rows = [row for row in rows if row["family"] == "matrix channel step-mode"]
 
     fig, ax = plt.subplots(figsize=(9, 5))
     for method in sorted({row["method"] for row in fractal_rows}):
@@ -127,14 +128,14 @@ def plot_metrics(rows: list[dict[str, float | int | str]]) -> None:
             [row["digit_count"] for row in group],
             [row["latency_ticks"] for row in group],
             marker="o",
-            label=method.replace("matrix_fractal_", ""),
+            label=str(group[0]["label"]),
         )
     ax.set_xscale("log", base=2)
     ax.set_yscale("log", base=2)
-    ax.set_xlabel("Matrix-radix digit count")
+    ax.set_xlabel("Matrix-channel digit count")
     ax.set_ylabel("Required observation window, ticks")
-    ax.set_title("Current step-mode payload latency")
-    ax.legend(title="period x shift")
+    ax.set_title("Matrix-channel payload latency")
+    ax.legend(title="channel alphabet")
     ax.grid(True, which="both", alpha=0.25)
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "figure_3_efficiency_required_ticks.png", dpi=180)
@@ -148,15 +149,15 @@ def plot_metrics(rows: list[dict[str, float | int | str]]) -> None:
             [row["digit_count"] for row in group],
             [row["id_bits_per_stream_tick"] for row in group],
             marker="o",
-            label=method.replace("matrix_fractal_", ""),
+            label=str(group[0]["label"]),
         )
     ax.axhline(1.0, color="black", linestyle="--", linewidth=1, label="binary x1")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log", base=10)
-    ax.set_xlabel("Matrix-radix digit count")
+    ax.set_xlabel("Matrix-channel digit count")
     ax.set_ylabel("ID, useful bits / stream-tick")
-    ax.set_title("Current conservative step-mode information density")
-    ax.legend(title="period x shift")
+    ax.set_title("Matrix-channel step-mode information density")
+    ax.legend(title="channel alphabet")
     ax.grid(True, which="both", alpha=0.25)
     fig.tight_layout()
     fig.savefig(OUTPUT_DIR / "figure_4_efficiency_id.png", dpi=180)

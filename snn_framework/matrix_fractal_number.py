@@ -1,41 +1,72 @@
-"""Matrix-based fractal number representation.
+"""Diagonal matrix-channel fractal number representation.
 
-This module keeps the layers separate:
+Each digit channel owns a user-defined diagonal period/shift matrix. If channel
+``i`` has contiguous periods ``P_i``, then every period row ``P`` has exactly
+``P`` valid start delays ``S in [0, P - 1]``. The channel radix is the diagonal
+matrix capacity:
 
-1. a decimal number is converted to digits in base ``period_levels * shift_levels``;
-2. each digit selects a cell in a period-shift matrix;
-3. selected cells define half-duty periodic step generators;
-4. the generators produce a multichannel amplitude signal.
+``Base_i = sum(P for P in periods_i)``.
 
-The base matrix does not store probability. Probability/reliability belongs to
-later decoding or memory-association layers, not to the primary numeric code.
+A digit selects a row (period) and a start delay by progressive subtraction:
 
-Ordering invariant:
-larger period means lower frequency and a more significant digit channel. The
-numeric digits remain little-endian: ``digit_index == 0`` is the least
-significant, highest-frequency channel; increasing ``digit_index`` moves toward
-lower-frequency, larger-period, more significant channels.
+``digit = sum(previous periods) + S``.
 
-Canonical cell order:
-``row_major`` treats the period/frequency row as the integer part and the
-shift/phase column as the fractional part of a quantized cycle. Completing one
-full phase turn advances to the next integer row.
+The generated channel is silent before ``S`` and then emits a half-duty
+periodic step signal. The framework deliberately does not prescribe one global
+period-band schedule; researchers provide channel alphabets that fit their
+hardware constraints.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Iterable, Sequence
 
 
 @dataclass(frozen=True)
+class ChannelAlphabet:
+    """User-defined diagonal period/shift matrix for one digit channel."""
+
+    periods: tuple[int, ...]
+    shift_count: int | None = None
+
+    def __init__(self, periods: Iterable[int], shift_count: int | None = None) -> None:
+        period_tuple = tuple(int(period) for period in periods)
+        if not period_tuple:
+            raise ValueError("ChannelAlphabet periods must not be empty")
+        if any(period < 2 for period in period_tuple):
+            raise ValueError("ChannelAlphabet periods must be >= 2")
+        if len(set(period_tuple)) != len(period_tuple):
+            raise ValueError("ChannelAlphabet periods must be unique")
+        if tuple(sorted(period_tuple)) != period_tuple:
+            raise ValueError("ChannelAlphabet periods must be sorted")
+        if any(right - left != 1 for left, right in zip(period_tuple, period_tuple[1:])):
+            raise ValueError("ChannelAlphabet periods must be contiguous with step 1")
+        if shift_count is not None:
+            raise ValueError("shift_count is not used by the diagonal alphabet")
+
+        object.__setattr__(self, "periods", period_tuple)
+        object.__setattr__(self, "shift_count", None)
+
+    @property
+    def max_period(self) -> int:
+        return max(self.periods)
+
+    @property
+    def radix(self) -> int:
+        return sum(self.periods)
+
+
+@dataclass(frozen=True)
 class MatrixCell:
-    """One selected cell of the period-shift alphabet."""
+    """One selected cell in a channel period/shift matrix."""
 
     digit_index: int
     digit_value: int
     period_index: int
     shift_index: int
+    shift_value: int
     period_ticks: int
     shift_ticks: int
     active_width_ticks: int
@@ -80,56 +111,188 @@ class DirectDecodeResult:
     method: str
 
 
+ChannelAlphabetRule = Callable[[int], ChannelAlphabet]
+
+
 class MatrixFractalNumber:
-    """Fractal number whose radix is defined by a period-shift matrix.
-
-    ``digit_index`` follows the SNN clock-significance axiom: the least
-    significant channel has the shortest period / highest frequency, and each
-    more significant channel uses a larger period / lower frequency.
-
-    Within one digit channel, ``row_major`` is the canonical order:
-    ``digit = period_index * shift_levels + shift_index``. This means
-    ``period_index`` is the integer part and ``shift_index / shift_levels`` is
-    the fractional phase/shift part.
-    """
+    """Fractal number over user-defined channel matrices."""
 
     def __init__(
         self,
-        period_levels: int,
-        shift_levels: int,
+        period_levels: int | None = None,
+        shift_levels: int | None = None,
         *,
-        base_period_ticks: int = 8,
+        channel_alphabets: Sequence[ChannelAlphabet | Iterable[int]] | None = None,
+        channel_rule: ChannelAlphabetRule | None = None,
+        min_period_ticks: int = 2,
     ) -> None:
+        if min_period_ticks < 2:
+            raise ValueError("min_period_ticks must be >= 2")
+        if channel_alphabets is not None and channel_rule is not None:
+            raise ValueError("provide either channel_alphabets or channel_rule, not both")
+
+        self.min_period_ticks = min_period_ticks
+        self.period_levels = period_levels
+        self.shift_levels = shift_levels
+        self.base_period_ticks = 1
+        self._finite_alphabets: tuple[ChannelAlphabet, ...] | None = None
+
+        if channel_alphabets is not None:
+            self._finite_alphabets = tuple(
+                alphabet
+                if isinstance(alphabet, ChannelAlphabet)
+                else ChannelAlphabet(alphabet)
+                for alphabet in channel_alphabets
+            )
+            if not self._finite_alphabets:
+                raise ValueError("channel_alphabets must not be empty")
+            self._channel_rule = self._alphabet_from_finite_list
+        elif channel_rule is not None:
+            self._channel_rule = channel_rule
+        elif period_levels is not None and shift_levels is not None:
+            self._channel_rule = self._legacy_fixed_width_rule(
+                period_levels=period_levels,
+                shift_levels=shift_levels,
+                start=min_period_ticks,
+            )
+        else:
+            self._channel_rule = self._contiguous_equal_width_rule(
+                start=min_period_ticks,
+                width=5,
+            )
+        self.base = self.radix(0)
+
+    @classmethod
+    def article_348_alphabet(cls) -> MatrixFractalNumber:
+        """Return the two-channel alphabet used by the article's 348 example."""
+
+        return cls(
+            channel_alphabets=[
+                ChannelAlphabet(range(2, 7)),
+                ChannelAlphabet(range(7, 11)),
+            ]
+        )
+
+    @classmethod
+    def from_contiguous_bands(
+        cls,
+        *,
+        start: int = 2,
+        widths: Sequence[int] | None = None,
+        width: int | None = None,
+    ) -> MatrixFractalNumber:
+        """Build finite or infinite non-overlapping contiguous period bands."""
+
+        if widths is not None and width is not None:
+            raise ValueError("provide either widths or width, not both")
+        if widths is not None:
+            alphabets: list[ChannelAlphabet] = []
+            cursor = start
+            for band_width in widths:
+                if band_width < 1:
+                    raise ValueError("band widths must be >= 1")
+                alphabets.append(ChannelAlphabet(range(cursor, cursor + band_width)))
+                cursor += band_width
+            return cls(channel_alphabets=alphabets)
+        if width is None:
+            width = 5
+        return cls(channel_rule=cls._contiguous_equal_width_rule(start=start, width=width))
+
+    @classmethod
+    def from_rule(cls, rule: ChannelAlphabetRule) -> MatrixFractalNumber:
+        """Build a model from a user-provided channel alphabet rule."""
+
+        return cls(channel_rule=rule)
+
+    @staticmethod
+    def _contiguous_equal_width_rule(*, start: int, width: int) -> ChannelAlphabetRule:
+        if start < 2:
+            raise ValueError("start must be >= 2")
+        if width < 1:
+            raise ValueError("width must be >= 1")
+
+        def rule(digit_index: int) -> ChannelAlphabet:
+            band_start = start + digit_index * width
+            return ChannelAlphabet(range(band_start, band_start + width))
+
+        return rule
+
+    @staticmethod
+    def _legacy_fixed_width_rule(
+        *, period_levels: int, shift_levels: int, start: int
+    ) -> ChannelAlphabetRule:
         if period_levels < 1:
             raise ValueError("period_levels must be >= 1")
         if shift_levels < 1:
             raise ValueError("shift_levels must be >= 1")
-        if base_period_ticks < 2:
-            raise ValueError("base_period_ticks must be >= 2")
 
-        self.period_levels = period_levels
-        self.shift_levels = shift_levels
-        self.base_period_ticks = base_period_ticks
-        self.base = period_levels * shift_levels
+        def rule(digit_index: int) -> ChannelAlphabet:
+            band_start = start + digit_index * period_levels
+            return ChannelAlphabet(range(band_start, band_start + period_levels))
 
-    def digit_to_indices(self, digit_value: int) -> tuple[int, int]:
+        return rule
+
+    def _alphabet_from_finite_list(self, digit_index: int) -> ChannelAlphabet:
+        if self._finite_alphabets is None:
+            raise ValueError("finite alphabet list is not configured")
+        if digit_index >= len(self._finite_alphabets):
+            raise ValueError("digit_index is outside finite channel_alphabets")
+        return self._finite_alphabets[digit_index]
+
+    def channel_alphabet(self, digit_index: int) -> ChannelAlphabet:
+        """Return the user-defined matrix alphabet for channel ``digit_index``."""
+
+        if digit_index < 0:
+            raise ValueError("digit_index must be non-negative")
+        alphabet = self._channel_rule(digit_index)
+        if not isinstance(alphabet, ChannelAlphabet):
+            alphabet = ChannelAlphabet(alphabet)
+        return alphabet
+
+    def period_for_digit(self, digit_index: int) -> int:
+        """Return the maximum period configured for channel ``i``."""
+
+        return self.channel_alphabet(digit_index).max_period
+
+    def radix(self, digit_index: int) -> int:
+        """Return channel radix, equal to diagonal capacity ``sum(periods)``."""
+
+        return self.channel_alphabet(digit_index).radix
+
+    def digit_to_indices(
+        self, digit_value: int, *, digit_index: int = 0
+    ) -> tuple[int, int]:
         """Map one digit value to ``(period_index, shift_index)``."""
 
-        if not 0 <= digit_value < self.base:
-            raise ValueError("digit_value is outside matrix radix")
-        return divmod(digit_value, self.shift_levels)
+        alphabet = self.channel_alphabet(digit_index)
+        if not 0 <= digit_value < alphabet.radix:
+            raise ValueError("digit_value is outside channel radix")
+        remaining = int(digit_value)
+        for period_index, period in enumerate(alphabet.periods):
+            if remaining < period:
+                return period_index, remaining
+            remaining -= period
+        raise ValueError("digit_value is outside channel radix")
 
-    def cell_indices_to_digit(self, period_index: int, shift_index: int) -> int:
-        """Map ``(period_index, shift_index)`` back to a digit value."""
+    def cell_indices_to_digit(
+        self,
+        period_index: int,
+        shift_index: int,
+        *,
+        digit_index: int = 0,
+    ) -> int:
+        """Map ``(period_index, shift_index)`` back to one digit value."""
 
-        if not 0 <= period_index < self.period_levels:
-            raise ValueError("period_index is outside matrix")
-        if not 0 <= shift_index < self.shift_levels:
-            raise ValueError("shift_index is outside matrix")
-        return period_index * self.shift_levels + shift_index
+        alphabet = self.channel_alphabet(digit_index)
+        if not 0 <= period_index < len(alphabet.periods):
+            raise ValueError("period_index is outside channel alphabet")
+        period = alphabet.periods[period_index]
+        if not 0 <= shift_index < period:
+            raise ValueError("shift_index is outside channel alphabet")
+        return sum(alphabet.periods[:period_index]) + shift_index
 
     def encode_digits(self, number: int, digit_count: int | None = None) -> list[int]:
-        """Convert a decimal number to little-endian matrix-radix digits.
+        """Convert a decimal number to little-endian mixed-radix digits.
 
         Index ``0`` is least significant and must map to the highest-frequency
         channel. Higher indices are more significant and lower-frequency.
@@ -140,23 +303,23 @@ class MatrixFractalNumber:
         if digit_count is not None and digit_count < 1:
             raise ValueError("digit_count must be >= 1")
 
-        if number == 0:
-            digits = [0]
-        else:
-            digits = []
-            value = number
-            while value:
-                value, digit = divmod(value, self.base)
-                digits.append(digit)
+        digits: list[int] = []
+        value = number
+        index = 0
+        while value or not digits:
+            if digit_count is not None and index >= digit_count:
+                raise ValueError("number does not fit into digit_count")
+            radix = self.radix(index)
+            value, digit = divmod(value, radix)
+            digits.append(digit)
+            index += 1
 
         if digit_count is not None:
-            if len(digits) > digit_count:
-                raise ValueError("number does not fit into digit_count")
             digits.extend([0] * (digit_count - len(digits)))
         return digits
 
     def decode_digits(self, digits: Sequence[int]) -> int:
-        """Convert little-endian matrix-radix digits back to decimal.
+        """Convert little-endian mixed-radix digits back to decimal.
 
         The input order is least-significant to most-significant. In the signal
         model that is also highest-frequency to lowest-frequency.
@@ -164,38 +327,36 @@ class MatrixFractalNumber:
 
         number = 0
         multiplier = 1
-        for digit in digits:
-            if not 0 <= digit < self.base:
-                raise ValueError("digit is outside matrix radix")
+        for digit_index, digit in enumerate(digits):
+            radix = self.radix(digit_index)
+            if not 0 <= digit < radix:
+                raise ValueError("digit is outside channel radix")
             number += int(digit) * multiplier
-            multiplier *= self.base
+            multiplier *= radix
         return number
 
     def digit_to_cell(self, digit_index: int, digit_value: int) -> MatrixCell:
-        """Map one radix digit to a period-shift matrix cell."""
+        """Map one mixed-radix digit to a selected matrix cell."""
 
         if digit_index < 0:
             raise ValueError("digit_index must be non-negative")
-        if not 0 <= digit_value < self.base:
-            raise ValueError("digit_value is outside matrix radix")
+        alphabet = self.channel_alphabet(digit_index)
+        if not 0 <= digit_value < alphabet.radix:
+            raise ValueError("digit_value is outside channel matrix alphabet")
 
-        period_index, shift_index = self.digit_to_indices(digit_value)
-        # Digit position must be encoded in the generator family. Otherwise two
-        # swapped digits can produce the same summed signal.
-        # Larger digit_index means a more significant digit channel; by the SNN
-        # clock axiom it therefore receives a larger period / lower frequency.
-        period_band = digit_index * self.period_levels + period_index + 1
-        period_ticks = self.base_period_ticks * period_band
-        # Shift columns are phase offsets inside the selected channel period.
-        # Each selected cell emits a binary waveform with zero first half and
-        # one second half in its local shifted cycle.
-        shift_ticks = round(period_ticks * shift_index / self.shift_levels)
+        period_index, shift_index = self.digit_to_indices(
+            int(digit_value),
+            digit_index=digit_index,
+        )
+        period_ticks = alphabet.periods[period_index]
+        shift_ticks = shift_index
         active_width_ticks = period_ticks // 2
         return MatrixCell(
             digit_index=digit_index,
             digit_value=digit_value,
             period_index=period_index,
             shift_index=shift_index,
+            shift_value=shift_index,
             period_ticks=period_ticks,
             shift_ticks=shift_ticks,
             active_width_ticks=active_width_ticks,
@@ -219,7 +380,7 @@ class MatrixFractalNumber:
             raise ValueError("digit_index must be non-negative")
         return [
             self.digit_to_cell(digit_index, digit_value)
-            for digit_value in range(self.base)
+            for digit_value in range(self.radix(digit_index))
         ]
 
     def decode_cells(self, cells: Sequence[MatrixCell]) -> int:
@@ -274,12 +435,7 @@ class MatrixFractalNumber:
     def channel_schedule(
         self, digit_index: int, *, digit_count: int
     ) -> ChannelSchedule:
-        """Return the known active-tick mask for one digit channel.
-
-        The first step prototype uses an orthogonal time mask:
-        ``period_ticks = digit_count`` and ``shift_ticks = digit_index``.
-        This makes channels directly separable in the summed signal.
-        """
+        """Return a simple diagnostic mask for one digit channel."""
 
         if digit_count < 1:
             raise ValueError("digit_count must be >= 1")
@@ -287,7 +443,7 @@ class MatrixFractalNumber:
             raise ValueError("digit_index must be inside digit_count")
         return ChannelSchedule(
             digit_index=digit_index,
-            period_ticks=digit_count,
+            period_ticks=max(2, digit_count),
             shift_ticks=digit_index,
             active_width_ticks=1,
         )
@@ -433,56 +589,39 @@ class MatrixFractalNumber:
         amplitude: float,
         threshold: float,
     ) -> MatrixCell:
-        """Recover one channel cell from the first residual pulse segment."""
+        """Recover one channel cell by matching valid matrix-cell masks."""
 
-        start = next(
-            (
-                tick
-                for tick, value in enumerate(residual)
-                if value is not None and value >= threshold
-            ),
-            None,
-        )
-        if start is None:
+        if not any(value is not None and value >= threshold for value in residual):
             raise ValueError(f"no active segment for digit channel {digit_index}")
 
-        end: int | None = None
-        previous = residual[start]
-        for tick in range(start + 1, len(residual)):
-            value = residual[tick]
-            if value is None:
-                continue
-            if previous is not None and previous - value >= threshold:
-                end = tick
-                break
-            previous = value
-        if end is None:
-            raise ValueError(f"no falling edge for digit channel {digit_index}")
+        best_cell: MatrixCell | None = None
+        best_score: tuple[int, int, int, int] | None = None
+        for candidate in self.candidate_cells(digit_index):
+            schedule = self.cell_schedule(candidate)
+            misses = 0
+            hits = 0
+            exact_hits = 0
+            for tick, value in enumerate(residual):
+                if value is None:
+                    continue
+                expected_active = schedule.is_active(tick)
+                if not expected_active:
+                    continue
+                if value < threshold:
+                    misses += 1
+                else:
+                    hits += 1
+                    if value < amplitude + threshold:
+                        exact_hits += 1
 
-        half_period = end - start
-        if half_period < 1:
-            raise ValueError("decoded half-period must be positive")
-        period_ticks = half_period * 2
-        if period_ticks % self.base_period_ticks != 0:
-            raise ValueError("decoded period is outside the channel grid")
+            score = (misses, -exact_hits, -hits, candidate.digit_value)
+            if best_score is None or score < best_score:
+                best_score = score
+                best_cell = candidate
 
-        period_band = period_ticks // self.base_period_ticks
-        period_index = period_band - digit_index * self.period_levels - 1
-        if not 0 <= period_index < self.period_levels:
-            raise ValueError("decoded period is outside the digit channel alphabet")
-
-        shift_ticks = start - half_period
-        if shift_ticks < 0:
-            raise ValueError("decoded shift is negative")
-        shift_index = round(shift_ticks * self.shift_levels / period_ticks)
-        if not 0 <= shift_index < self.shift_levels:
-            raise ValueError("decoded shift is outside the digit channel alphabet")
-
-        digit_value = self.cell_indices_to_digit(period_index, shift_index)
-        cell = self.digit_to_cell(digit_index, digit_value)
-        if cell.period_ticks != period_ticks or cell.shift_ticks != shift_ticks:
-            raise ValueError("decoded cell is not aligned to the matrix alphabet")
-        return cell
+        if best_cell is None or best_score is None:
+            raise ValueError(f"could not decode matrix cell for channel {digit_index}")
+        return best_cell
 
     def decode_channel_signals(
         self,
@@ -549,7 +688,8 @@ class MatrixFractalNumber:
                     ],
                     "total_amplitude": round(sample.total_amplitude, 4),
                     "cells": [
-                        (cell.period_index, cell.shift_index) for cell in cells
+                        (cell.period_index, cell.period_ticks, cell.shift_value)
+                        for cell in cells
                     ],
                 }
             )
